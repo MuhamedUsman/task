@@ -3,14 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
 	"time"
 
-	"github.com/MuhamedUsman/task/sqlite"
 	"github.com/lmittmann/tint"
 )
 
@@ -37,11 +35,16 @@ func main() {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	db, err := sqlite.Open(ctx, path)
+	db, err := OpenDB(ctx, path)
 	if err != nil {
 		slog.Error("failed to open database connection", "error", err)
 	}
-	log.Fatal(db.RunMigrations())
+	if err = db.RunMigrations(); err != nil {
+		slog.Error("failed to run db migrations", "error", err)
+	}
+	defer func() {
+		_ = db.Close()
+	}()
 }
 
 func getAppStoragePath(appName string) (string, error) {
